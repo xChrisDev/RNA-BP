@@ -1,24 +1,24 @@
 <template>
-  <div class="h-[342px] overflow-y-auto pr-2">
+  <div class="overflow-y-auto pr-2">
     <div v-if="patterns.length === 0" class="text-center py-6 text-gray-500">
       <i class="pi pi-image text-4xl mb-2"></i>
       <p>No hay patrones guardados</p>
     </div>
 
-    <div v-else class="grid grid-cols-2 gap-2">
-      <div v-for="pattern in patterns" :key="pattern.id"
-        class="pattern-item border border-gray-200 rounded-lg p-2 relative">
-        <div class="flex justify-end">
-          <Button class="!w-8 !h-8" size="small" icon="pi pi-times" severity="danger" aria-label="Borrar"
-            @click="removePattern(pattern.id)" />
+    <div v-else class="grid grid-cols-5 gap-1">
+      <div v-for="pattern in patterns" :key="pattern.id" @click="disabled ? handlePatternClick(pattern) : null" :class="[
+        'pattern-item border border-gray-300 rounded p-1 relative transition-all duration-200',
+        disabled ? 'disabled-filter cursor-pointer' : 'cursor-default'
+      ]">
+        <div v-if="!disabled" class="flex justify-end">
+          <Button class="!w-6 !h-6" size="small" icon="pi pi-times" severity="danger" aria-label="Borrar"
+            @click.stop="removePattern(pattern.id)" />
         </div>
 
-        <div class="text-center mb-1 font-medium">
-          Patrón {{ pattern.label + 1 }}
-        </div>
+        <canvas :ref="el => { if (el) canvasRefs[pattern.id] = el }" width="50" height="50"
+          :class="['mx-auto border rounded border-white',disabled ? 'mt-5 mb-2': 'mt-0']" />
 
-        <canvas :ref="el => { if (el) canvasRefs[pattern.id] = el }" width="100" height="100"
-          class="mx-auto border mb-2 rounded-lg border-white"></canvas>
+        <div class="text-xs text-center mt-1">Patrón {{ pattern.label + 1 }}</div>
       </div>
     </div>
   </div>
@@ -32,10 +32,18 @@ const props = defineProps({
   patterns: {
     type: Array,
     default: () => []
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['remove-pattern'])
+const handlePatternClick = (pattern) => {
+  emit('pattern', pattern.label)
+}
+
+const emit = defineEmits(['remove-pattern', 'pattern'])
 const canvasRefs = ref({})
 
 const drawPattern = (pattern) => {
@@ -48,7 +56,8 @@ const drawPattern = (pattern) => {
   ctx.fillStyle = 'white'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-  const cellSize = Math.floor(canvas.width / 28)
+  const cellWidth = canvas.width / patternData[0].length
+  const cellHeight = canvas.height / patternData.length
 
   for (let i = 0; i < patternData.length; i++) {
     for (let j = 0; j < patternData[i].length; j++) {
@@ -56,7 +65,7 @@ const drawPattern = (pattern) => {
       if (value > 0) {
         const grayValue = 255 - value
         ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`
-        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize)
+        ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight)
       }
     }
   }

@@ -20,10 +20,10 @@
 
       <div class="flex gap-2">
         <Button label="Iniciar Entrenamiento" icon="pi pi-cog" :disabled="!trainingEnabled || isTraining || isTrained"
-          :loading="isTraining" @click="startTraining" class="p-button-success" />
+          :loading="isTraining" @click="startTraining" />
 
         <Button :label="isTrained ? 'Entrenar' : 'Predecir'" icon="pi pi-sync"
-          :loading="isTraining" @click="predictPattern" class="p-button-info" />
+          :loading="isTraining" @click="predictPattern" severity="info" />
 
         <Button label="Reiniciar Todo" icon="pi pi-refresh" :disabled="isTraining" @click="resetModel"
           class="p-button-danger p-button-outlined" />

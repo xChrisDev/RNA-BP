@@ -1,54 +1,52 @@
 <template>
 
-  <div class="grid grid-cols-1 gap-4 mt-8">
-    <div class="grid grid-cols-3 gap-3 mb-8">
-      <!-- Niu -->
-      <div class="mb-2">
-        <FloatLabel>
-          <label for="niu">Niu</label>
-          <InputText id="niu" type="Number" v-model="localParams.niu" :step="0.01" :min="0.01" :max="1" mode="decimal"
-            :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
-        </FloatLabel>
-      </div>
-
-      <!-- Alfa -->
-      <div class="mb-2">
-        <FloatLabel>
-          <label for="alfa">Alfa</label>
-          <InputText id="alfa" type="Number" v-model="localParams.alfa" :step="0.01" :min="0.01" :max="1" mode="decimal"
-            :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
-        </FloatLabel>
-      </div>
-
-      <!-- RMS -->
-      <div class="mb-2">
-        <FloatLabel>
-          <label for="rms">RMS</label>
-          <InputText id="rms" type="Number" v-model="localParams.rms" :step="0.01" :min="0.01" mode="decimal"
-            :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
-        </FloatLabel>
-      </div>
+  <div class="flex flex-col gap-6 mt-8">
+    <!-- Niu -->
+    <div class="mb-2">
+      <FloatLabel>
+        <label for="niu">Niu</label>
+        <InputText id="niu" type="Number" v-model="localParams.niu" :step="0.01" :min="0.01" :max="1" mode="decimal"
+          :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
+      </FloatLabel>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 mb-8">
-      <!-- Épocas -->
-      <div class="mb-2">
-        <FloatLabel>
-          <label for="epochs">Épocas (n)</label>
-          <InputText id="epochs" type="Number" v-model="localParams.epochs" :min="1" :step="1" :disabled="disabled"
-            class="w-full" @update:modelValue="updateParams" />
-        </FloatLabel>
-      </div>
-
-      <!-- Neuronas Ocultas -->
-      <div class="mb-2">
-        <FloatLabel>
-          <label for="hiddenNeurons">Neuronas Ocultas</label>
-          <InputText id="hiddenNeurons" type="Number" v-model="localParams.hiddenNeurons"
-            mode="decimal" :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
-        </FloatLabel>
-      </div>
+    <!-- Alfa -->
+    <div class="mb-2">
+      <FloatLabel>
+        <label for="alfa">Alfa</label>
+        <InputText id="alfa" type="Number" v-model="localParams.alfa" :step="0.01" :min="0.01" :max="1" mode="decimal"
+          :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
+      </FloatLabel>
     </div>
+
+    <!-- RMS -->
+    <div class="mb-2">
+      <FloatLabel>
+        <label for="rms">RMS</label>
+        <InputText id="rms" type="Number" v-model="localParams.rms" :step="0.01" :min="0.01" mode="decimal"
+          :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
+      </FloatLabel>
+    </div>
+
+
+    <!-- Épocas -->
+    <div class="mb-2">
+      <FloatLabel>
+        <label for="epochs">Épocas (n)</label>
+        <InputText id="epochs" type="Number" v-model="localParams.epochs" :min="1" :step="1" :disabled="disabled"
+          class="w-full" @update:modelValue="updateParams" />
+      </FloatLabel>
+    </div>
+
+    <!-- Neuronas Ocultas -->
+    <div class="mb-2">
+      <FloatLabel>
+        <label for="hiddenNeurons">Neuronas Ocultas</label>
+        <InputText id="hiddenNeurons" type="Number" v-model="localParams.hiddenNeurons" mode="decimal"
+          :disabled="disabled" class="w-full" @update:modelValue="updateParams" />
+      </FloatLabel>
+    </div>
+
 
     <div class="grid grid-cols-2 gap-3 mb-8">
       <!-- Límite Inferior -->

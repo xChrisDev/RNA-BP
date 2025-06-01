@@ -2,28 +2,78 @@
 @import '../node_modules/primeicons/primeicons.css';
 
 :root {
-    @apply bg-gray-200
+  @apply bg-gray-200
 }
 
 .my-app-dark {
-    background-color: #121212;
+  background-color: #121212;
 }
 
 .my-app-dark .card-container {
-    @apply bg-[#252525]
+  @apply bg-[#252525]
 }
 
 body {
-  font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
 }
 
 .loader {
-  width: 120px;
-  height: 20px;
-  -webkit-mask: radial-gradient(circle closest-side,#000 94%,#0000) left/20% 100%;
-  background: linear-gradient(#000 0 0) left/0% 100% no-repeat #ddd;
-  animation: l17 2s infinite steps(6);
+  width: 48px;
+  height: 48px;
+  border: 5px solid #007BFF;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
 }
-@keyframes l17 {
-    100% {background-size:120% 100%}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.p-button-info {
+  --p-button-info-background: #3FA7FF;
+  --p-button-info-hover-background: #1F90F0;
+  --p-button-info-active-background: #0D78D0;
+
+  --p-button-info-border-color: #3FA7FF;
+  --p-button-info-hover-border-color: #1F90F0;
+  --p-button-info-active-border-color: #0D78D0;
+}
+
+.p-button-info:disabled {
+  --p-button-info-background: #B8DEFF;
+  --p-button-info-border-color: #B8DEFF;
+  --p-button-info-hover-background: #B8DEFF;
+  --p-button-info-hover-border-color: #B8DEFF;
+}
+
+
+.p-button-danger {
+  --p-button-danger-background: #FF2C57;
+  --p-button-danger-hover-background: #D92447;
+  --p-button-danger-active-background: #B61D3A;
+
+  --p-button-danger-border-color: #FF2C57;
+  --p-button-danger-hover-border-color: #D92447;
+  --p-button-danger-active-border-color: #B61D3A;
+}
+
+.p-button-danger:disabled {
+  --p-button-danger-background: #FF9CAF;
+  --p-button-danger-border-color: #FF9CAF;
+  --p-button-danger-hover-background: #FF9CAF;
+  --p-button-danger-hover-border-color: #FF9CAF;
+}
+
+.disabled-filter:hover {
+  filter: opacity(0.8) sepia(0.5);
+  transition: filter 0.3s ease;
 }

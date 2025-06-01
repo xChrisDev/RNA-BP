@@ -2,74 +2,87 @@
   <div class="min-h-screen">
     <Toast position="bottom-right" />
     <div class="container mx-auto py-6 px-4">
-
+      <!-- Header -->
       <Card class="mb-6">
         <template #content>
-          <div class=" flex justify-between items-center gap-2">
-            <h1 class="text-2xl font-bold">
-              RNA BackPropagation - Reconocimiento de Patrones
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-bold text-center sm:text-left">
+              RNA BP - Reconocimiento de Patrones
             </h1>
             <ButtonDarkMode />
           </div>
           <Divider />
-          <TrainingControl :trainingEnabled="patterns.length >= 5" :isTraining="isTraining" :isTrained="isTrained"
-            @start-training="startTraining" @reset="resetModel" @predict-pattern="turnPredict" />
+          <TrainingControl
+            :trainingEnabled="patterns.length >= 5"
+            :isTraining="isTraining"
+            :isTrained="isTrained"
+            @start-training="startTraining"
+            @reset="resetModel"
+            @predict-pattern="turnPredict"
+          />
         </template>
       </Card>
 
+      <!-- Contenido principal -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Panel Izquierdo: Parámetros y Entrenamiento -->
-        <div class="col-span-1">
-          <Card class="h-[420px]">
-            <template #title>Parámetros RNA</template>
-            <template #content>
-              <ParameterSettings :modelParams="modelParams" @update:modelParams="modelParams = $event" />
-            </template>
-          </Card>
-        </div>
+        <!-- Panel Parámetros -->
+        <Card class="h-full">
+          <template #title>Parámetros RNA</template>
+          <template #content>
+            <ParameterSettings :modelParams="modelParams" @update:modelParams="modelParams = $event" />
+          </template>
+        </Card>
 
-        <!-- Panel Central: Canvas de Dibujo -->
-        <div class="col-span-1">
+        <!-- Panel de trabajo: Canvas + Resultados -->
+        <div class="grid grid-cols-1 col-span-2 md:grid-cols-2 gap-6">
+          <!-- Canvas -->
           <Card>
             <template #title>
               <div class="flex justify-between items-center">
                 <span>{{ isTrained ? 'Predicción' : `Patrón ${patterns.length}/5` }}</span>
-                <div class="flex justify-center items-center gap-2">
-                  <Button size="small" v-for="btn in buttons" :key="btn.value" :label="btn.label"
-                    :disabled="!patterns[btn.value]" @click="drawPattern(patterns[btn.value]?.data)" />
+              </div>
+            </template>
+            <template #content>
+              <CanvasDrawing
+                ref="canvasRef"
+                :disabled="isTraining"
+                :mode="isTrained ? 'prediction' : 'collection'"
+                class="w-full"
+              />
+              <div class="flex flex-wrap gap-2 pt-4 justify-center items-center">
+                <Button icon="pi pi-trash" severity="danger" @click="clearCanvas" />
+                <Button
+                  label="Guardar Patrón"
+                  v-if="!isTrained"
+                  :disabled="isDrawing || isTraining || patterns.length >= 5"
+                  @click="savePattern"
+                  icon="pi pi-save"
+                />
+                <Button
+                  label="Predecir"
+                  v-else
+                  :disabled="isDrawing || isTraining"
+                  @click="makePrediction"
+                  icon="pi pi-sync"
+                />
+              </div>
+            </template>
+          </Card>
+
+          <!-- Resultado / Entrenamiento -->
+          <Card>
+            <template #title>
+              {{ isTrained ? 'Resultado' : 'Entrenamiento' }}
+            </template>
+            <template #content>
+              <div v-if="!isTrained">
+                <div class="text-center py-6 text-gray-500">
+                  <i class="pi pi-lightbulb text-4xl mb-2"></i>
+                  <p>No ha iniciado el entrenamiento</p>
                 </div>
               </div>
-            </template>
-            <template #content>
 
-
-              <CanvasDrawing ref="canvasRef" :disabled="isTraining" :mode="isTrained ? 'prediction' : 'collection'" />
-
-              <div class="flex gap-2 mt-[11px] justify-center items-center">
-                <Button icon="pi pi-trash" severity="danger" @click="clearCanvas" />
-                <Button label="Guardar Patrón" v-if="!isTrained"
-                  :disabled="isDrawing || isTraining || patterns.length >= 5" @click="savePattern" icon="pi pi-save" />
-                <Button label="Predecir" v-else :disabled="isDrawing || isTraining" @click="makePrediction"
-                  icon="pi pi-sync" />
-              </div>
-            </template>
-          </Card>
-        </div>
-
-        <!-- Panel Derecho: Galería y Resultados -->
-        <div class="col-span-1" v-if="!isTrained">
-          <Card>
-            <template #title>Patrones Guardados</template>
-            <template #content>
-              <PatternGallery :patterns="patterns" @remove-pattern="removePattern" />
-            </template>
-          </Card>
-        </div>
-        <div v-else>
-          <Card>
-            <template #title>Resultado</template>
-            <template #content>
-              <div>
+              <div v-else>
                 <div v-if="!prediction" class="text-center py-6 text-gray-500">
                   <i class="pi pi-search text-4xl mb-2"></i>
                   <p>Dibuja un patrón para ver la predicción</p>
@@ -81,29 +94,49 @@
                       <div class="loader"></div>
                     </div>
                     <div v-else>
-                      <canvas ref="resultCanvas" width="280" height="280"
-                        class="border-2 border-gray-300 rounded-lg cursor-crosshair bg-white"></canvas>
+                      <canvas
+                        ref="resultCanvas"
+                        width="280"
+                        height="280"
+                        class="border-2 border-gray-300 rounded-lg bg-white"
+                      ></canvas>
                     </div>
                   </div>
                 </div>
               </div>
             </template>
           </Card>
+
+          <!-- Galería -->
+          <Card class="md:col-span-2">
+            <template #title>Patrones de entrenamiento</template>
+            <template #content>
+              <PatternGallery
+                class="w-full"
+                :patterns="patterns"
+                @pattern="(n) => drawPattern(patterns[n]?.data)"
+                @remove-pattern="removePattern"
+                :disabled="isTrained"
+              />
+            </template>
+          </Card>
         </div>
       </div>
 
-      <div v-if="isTrained" class="grid grid-cols-3 gap-6 mt-6">
-        <Card class="col-span-3">
-          <template #title>Grafica</template>
+      <!-- Gráfica -->
+      <div v-if="isTrained" class="mt-6">
+        <Card>
+          <template #title>Gráfica</template>
           <template #content>
             <Chart type="line" :data="chartData" :options="chartOptions" class="h-[30rem]" />
           </template>
         </Card>
       </div>
-
     </div>
   </div>
 </template>
+
+
 
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
