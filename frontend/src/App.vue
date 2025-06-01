@@ -34,18 +34,18 @@
             <template #title>
               <div class="flex justify-between items-center">
                 <span>{{ isTrained ? 'Predicción' : `Patrón ${patterns.length}/5` }}</span>
+                <div class="flex justify-center items-center gap-2">
+                  <Button size="small" v-for="btn in buttons" :key="btn.value" :label="btn.label"
+                    :disabled="!patterns[btn.value]" @click="drawPattern(patterns[btn.value]?.data)" />
+                </div>
               </div>
             </template>
             <template #content>
-              <div class="flex justify-center mb-2 gap-2">
-                <Button size="small" v-for="btn in buttons" :key="btn.value" :label="btn.label"
-                  :disabled="!patterns[btn.value]" @click="drawPattern(patterns[btn.value]?.data)" />
 
-              </div>
 
               <CanvasDrawing ref="canvasRef" :disabled="isTraining" :mode="isTrained ? 'prediction' : 'collection'" />
 
-              <div class="flex gap-2 mt-4 justify-center items-center">
+              <div class="flex gap-2 mt-[11px] justify-center items-center">
                 <Button icon="pi pi-trash" severity="danger" @click="clearCanvas" />
                 <Button label="Guardar Patrón" v-if="!isTrained"
                   :disabled="isDrawing || isTraining || patterns.length >= 5" @click="savePattern" icon="pi pi-save" />
