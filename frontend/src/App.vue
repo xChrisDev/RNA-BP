@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen">
-    <Toast position="bottom-right" />
+    <Toast position="top-right" />
     <div class="container mx-auto py-6 px-4">
       <!-- Header -->
       <Card class="mb-6">
