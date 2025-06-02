@@ -76,9 +76,69 @@
             </template>
             <template #content>
               <div v-if="!isTrained">
-                <div class="text-center py-6 text-gray-500">
+                <!-- Estado cuando no está entrenando -->
+                <div v-if="!isTraining && trainingProgress.epoch === 0" class="text-center py-6 text-gray-500">
                   <i class="pi pi-lightbulb text-4xl mb-2"></i>
                   <p>No ha iniciado el entrenamiento</p>
+                </div>
+
+                <!-- Progreso del entrenamiento -->
+                <div v-else class="flex flex-col h-[342px] p-4">
+                  <div class="mb-4">
+                    <!-- Indicador de progreso -->
+                    <div class="mb-4">
+                      <div class="flex justify-between text-sm mb-1">
+                        <span>Época {{ trainingProgress.epoch }}</span>
+                        <span>{{ modelParams.epochs }}</span>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          :style="{ width: `${(trainingProgress.epoch / modelParams.epochs) * 100}%` }"
+                        ></div>
+                      </div>
+                    </div>
+
+                    <!-- Estado actual -->
+                    <div class=" rounded-lg p-3 mb-4">
+                      <div class="text-sm">
+                        <div class="flex justify-between mb-1">
+                          <span class="font-medium">Estado:</span>
+                          <span class="text-blue-600">
+                            {{ isTraining ? 'Entrenando...' : (trainingProgress.completed ? 'Completado' : 'Preparando...') }}
+                          </span>
+                        </div>
+                        <div class="flex justify-between mb-1">
+                          <span class="font-medium">Época actual:</span>
+                          <span>{{ trainingProgress.epoch }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="font-medium">RMS actual:</span>
+                          <span>{{ trainingProgress.rms.toFixed(6) }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Mensaje del entrenamiento -->
+                    <div class="text-xs text-gray-500 border rounded p-2 font-mono">
+                      {{ trainingProgress.message }}
+                    </div>
+
+                    <!-- Spinner cuando está entrenando -->
+                    <div v-if="isTraining" class="flex justify-center mt-4">
+                      <div class="loader"></div>
+                    </div>
+
+                    <!-- Mensaje de finalización -->
+                    <div v-if="trainingProgress.completed && !isTraining" class="mt-4">
+                      <div class="text-center">
+                        <div class="text-green-600 font-medium">
+                          <i class="pi pi-check-circle mr-1"></i>
+                          Entrenamiento completado
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -136,10 +196,8 @@
   </div>
 </template>
 
-
-
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { nextTick, ref, watch, onUnmounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 
 import CanvasDrawing from './components/CanvasDrawing.vue';
@@ -147,7 +205,7 @@ import ParameterSettings from './components/ParameterSettings.vue';
 import TrainingControl from './components/TrainingControl.vue';
 import PatternGallery from './components/PatternGallery.vue';
 
-import { trainModel, predictPattern } from './services/api';
+import { predictPattern, trainModelWithProgress, connectToTrainingProgress } from './services/api';
 import { Card, Button, Toast, Divider } from 'primevue';
 import ButtonDarkMode from './components/ButtonDarkMode.vue';
 import Chart from 'primevue/chart';
@@ -165,20 +223,27 @@ const resultCanvas = ref(null)
 const isLoading = ref(false)
 const predictionValues = ref({ hidden_neurons: 0, output_neurons: 0, input_neurons: 0 })
 
+// Estado del progreso del entrenamiento
+const trainingProgress = ref({
+  epoch: 0,
+  rms: 0.0,
+  is_training: false,
+  completed: false,
+  message: "",
+  rms_history: []
+});
+
+let eventSource = null;
+
 const modelParams = ref({
-  alfa: 0.6,
-  niu: 0.3,
-  rms: 0.001,
-  epochs: 1000,
+  alfa: 0.35,
+  niu: 0.25,
+  rms: 0.01,
+  epochs: 10000,
   hiddenNeurons: 128,
   upper_limit: 0.3,
   lower_limit: -0.3
 });
-
-const buttons = computed(() =>
-  patterns.value.map((p, index) => ({ label: `P${index + 1}`, value: index }))
-);
-
 
 const drawPattern = (pattern) => {
   if (!pattern || !Array.isArray(pattern)) return;
@@ -212,8 +277,9 @@ watch(prediction, async (newPrediction) => {
   }
 });
 
-watch(rms_history, (newHistory) => {
-  if (newHistory.length > 0) {
+watch(() => trainingProgress.value.rms_history, (newHistory) => {
+  if (newHistory && newHistory.length > 0) {
+    rms_history.value = newHistory;
     chartData.value = setChartData();
     chartOptions.value = setChartOptions();
   }
@@ -275,7 +341,6 @@ const setChartOptions = () => {
   };
 };
 
-
 const clearCanvas = () => {
   canvasRef.value?.clearCanvas();
 };
@@ -285,7 +350,6 @@ const savePattern = async () => {
     toast.add({ severity: 'warn', summary: 'Límite alcanzado', detail: 'Ya has dibujado 5 patrones', life: 3000 });
     return;
   }
-
 
   const patternData = await canvasRef.value?.savePattern();
   if (patternData) {
@@ -332,6 +396,17 @@ const startTraining = async () => {
 
   try {
     isTraining.value = true;
+    
+    // Reiniciar progreso
+    trainingProgress.value = {
+      epoch: 0,
+      rms: 0.0,
+      is_training: true,
+      completed: false,
+      message: "Iniciando entrenamiento...",
+      rms_history: []
+    };
+
     toast.add({ severity: 'info', summary: 'Entrenando', detail: 'Entrenamiento iniciado...', life: 3000 });
 
     const trainingData = patterns.value.map(p => ({
@@ -354,22 +429,52 @@ const startTraining = async () => {
       training_patterns: newDataTraining
     }
 
-    predictionValues.value = { input_neurons: 784, output_neurons: 3, hidden_neurons: parseFloat(modelParams.value.hiddenNeurons), }
+    predictionValues.value = { 
+      input_neurons: 784, 
+      output_neurons: 3, 
+      hidden_neurons: parseFloat(modelParams.value.hiddenNeurons), 
+    }
 
-    const result = await trainModel(data);
-    console.log(result)
-    rms_history.value = result.rms_history
+    // Iniciar entrenamiento con progreso
+    await trainModelWithProgress(data);
 
-    isTraining.value = false;
-    isTrained.value = true;
-    toast.add({
-      severity: 'success',
-      summary: 'Entrenamiento completo',
-      detail: result.message,
-      life: 5000
-    });
+    // Conectar a SSE para recibir actualizaciones en tiempo real
+    eventSource = connectToTrainingProgress(
+      // onProgress
+      (progressData) => {
+        trainingProgress.value = progressData;
+      },
+      // onError
+      (error) => {
+        console.error('Error en SSE:', error);
+        isTraining.value = false;
+        toast.add({
+          severity: 'error',
+          summary: 'Error de conexión',
+          detail: 'Error al recibir actualizaciones del entrenamiento',
+          life: 5000
+        });
+      },
+      // onComplete
+      (finalData) => {
+        trainingProgress.value = finalData;
+        rms_history.value = finalData.rms_history || [];
+        isTraining.value = false;
+        isTrained.value = true;
+        
+        toast.add({
+          severity: 'success',
+          summary: 'Entrenamiento completo',
+          detail: finalData.message,
+          life: 5000
+        });
+      }
+    );
+
   } catch (error) {
     isTraining.value = false;
+    trainingProgress.value.completed = true;
+    trainingProgress.value.is_training = false;
     toast.add({
       severity: 'error',
       summary: 'Error de entrenamiento',
@@ -384,11 +489,29 @@ const turnPredict = () => {
 }
 
 const resetModel = () => {
+  // Cerrar conexión SSE si existe
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
+
   patterns.value = [];
   targets.value = [];
   isTrained.value = false;
+  isTraining.value = false;
   predictionValues.value = { hidden_neurons: 0, output_neurons: 0, input_neurons: 0 }
   prediction.value = null;
+  
+  // Reiniciar progreso del entrenamiento
+  trainingProgress.value = {
+    epoch: 0,
+    rms: 0.0,
+    is_training: false,
+    completed: false,
+    message: "",
+    rms_history: []
+  };
+  
   clearCanvas();
   toast.add({ severity: 'info', summary: 'Reinicio', detail: 'Todos los datos han sido borrados', life: 3000 });
 };
@@ -416,7 +539,6 @@ const drawPrediction = (pattern) => {
   }
 }
 
-
 const makePrediction = async () => {
   if (!isTrained.value) {
     toast.add({ severity: 'warn', summary: 'No entrenado', detail: 'Entrena el modelo primero', life: 3000 });
@@ -435,11 +557,8 @@ const makePrediction = async () => {
         inputs: patternData.flat()
       }
 
-      // console.table(data.inputs)
-
       const result = await predictPattern(data);
       prediction.value = result.prediction.patternData
-      console.table(prediction.value)
       toast.add({
         severity: 'success',
         summary: 'Predicción completada',
@@ -448,6 +567,7 @@ const makePrediction = async () => {
       isLoading.value = false;
     }
   } catch (error) {
+    isLoading.value = false;
     toast.add({
       severity: 'error',
       summary: 'Error de predicción',
@@ -456,4 +576,11 @@ const makePrediction = async () => {
     });
   }
 };
+
+// Limpiar recursos al desmontar el componente
+onUnmounted(() => {
+  if (eventSource) {
+    eventSource.close();
+  }
+});
 </script>

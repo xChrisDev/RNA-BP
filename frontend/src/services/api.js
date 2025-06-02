@@ -19,6 +19,45 @@ export const trainModel = async (data) => {
   }
 };
 
+export const trainModelWithProgress = async (data) => {
+  try {
+    const response = await api.post("/train-progress", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error al entrenar el modelo:", error);
+    throw new Error(
+      error.response?.data?.detail || "Error al entrenar el modelo"
+    );
+  }
+};
+
+export const connectToTrainingProgress = (onProgress, onError, onComplete) => {
+  const eventSource = new EventSource("http://localhost:8000/api/training-progress");
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      onProgress(data);
+      
+      if (data.completed) {
+        eventSource.close();
+        onComplete(data);
+      }
+    } catch (error) {
+      console.error("Error parsing SSE data:", error);
+      onError(error);
+    }
+  };
+  
+  eventSource.onerror = (error) => {
+    console.error("SSE Error:", error);
+    eventSource.close();
+    onError(error);
+  };
+  
+  return eventSource;
+};
+
 export const predictPattern = async (data) => {
   try {
     const response = await api.post("/predict", data);
