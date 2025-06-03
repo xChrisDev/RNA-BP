@@ -18,7 +18,6 @@ env/
 *.npy
 *.xlsx
 
-*.png
 *.svg
 *.pdf
 
